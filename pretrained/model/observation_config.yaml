@@ -19,43 +19,40 @@ obs_layout:
   his_last_actions:          [674, 964]  # 290 = 10 frames × 29 joints
   his_gravity_dir:           [964, 994]  # 30  = 10 frames × 3  (gx,gy,gz)
 
-# --- Joint order (29 DOF) ---
+# --- Joint order (29 DOF, IsaacLab order = ONNX obs/action order) ---
+# Derived from isaaclab_to_mujoco = {0,3,6,9,13,17,1,4,7,10,14,18,2,5,8,11,15,19,21,23,25,27,12,16,20,22,24,26,28}
+# in policy_parameters.hpp.  MuJoCo order is different; use isaaclab_to_mujoco to convert.
 # index: joint_name
 joint_names:
-  # 左腿 (0-5)
-  - left_hip_pitch_joint      # 0
-  - left_hip_roll_joint       # 1
-  - left_hip_yaw_joint        # 2
-  - left_knee_joint           # 3
-  - left_ankle_pitch_joint    # 4
-  - left_ankle_roll_joint     # 5
-  # 右腿 (6-11)
-  - right_hip_pitch_joint     # 6
-  - right_hip_roll_joint      # 7
-  - right_hip_yaw_joint       # 8
-  - right_knee_joint          # 9
-  - right_ankle_pitch_joint   # 10
-  - right_ankle_roll_joint    # 11
-  # 腰部 (12-14)
-  - waist_yaw_joint           # 12
-  - waist_roll_joint          # 13
-  - waist_pitch_joint         # 14
-  # 左臂 (15-21)
-  - left_shoulder_pitch_joint # 15
-  - left_shoulder_roll_joint  # 16
-  - left_shoulder_yaw_joint   # 17
-  - left_elbow_joint          # 18
-  - left_wrist_roll_joint     # 19
-  - left_wrist_pitch_joint    # 20
-  - left_wrist_yaw_joint      # 21
-  # 右臂 (22-28)
-  - right_shoulder_pitch_joint # 22
-  - right_shoulder_roll_joint  # 23
-  - right_shoulder_yaw_joint   # 24
-  - right_elbow_joint          # 25
-  - right_wrist_roll_joint     # 26
-  - right_wrist_pitch_joint    # 27
-  - right_wrist_yaw_joint      # 28
+  - left_hip_pitch_joint       # 0  → MuJoCo 0
+  - left_knee_joint            # 1  → MuJoCo 3
+  - right_hip_pitch_joint      # 2  → MuJoCo 6
+  - right_knee_joint           # 3  → MuJoCo 9
+  - waist_roll_joint           # 4  → MuJoCo 13
+  - left_shoulder_yaw_joint    # 5  → MuJoCo 17
+  - left_hip_roll_joint        # 6  → MuJoCo 1
+  - left_ankle_pitch_joint     # 7  → MuJoCo 4
+  - right_hip_roll_joint       # 8  → MuJoCo 7
+  - right_ankle_pitch_joint    # 9  → MuJoCo 10
+  - waist_pitch_joint          # 10 → MuJoCo 14
+  - left_elbow_joint           # 11 → MuJoCo 18
+  - left_hip_yaw_joint         # 12 → MuJoCo 2
+  - left_ankle_roll_joint      # 13 → MuJoCo 5
+  - right_hip_yaw_joint        # 14 → MuJoCo 8
+  - right_ankle_roll_joint     # 15 → MuJoCo 11
+  - left_shoulder_pitch_joint  # 16 → MuJoCo 15
+  - left_wrist_roll_joint      # 17 → MuJoCo 19
+  - left_wrist_yaw_joint       # 18 → MuJoCo 21
+  - right_shoulder_roll_joint  # 19 → MuJoCo 23
+  - right_elbow_joint          # 20 → MuJoCo 25
+  - right_wrist_pitch_joint    # 21 → MuJoCo 27
+  - waist_yaw_joint            # 22 → MuJoCo 12
+  - left_shoulder_roll_joint   # 23 → MuJoCo 16
+  - left_wrist_pitch_joint     # 24 → MuJoCo 20
+  - right_shoulder_pitch_joint # 25 → MuJoCo 22
+  - right_shoulder_yaw_joint   # 26 → MuJoCo 24
+  - right_wrist_roll_joint     # 27 → MuJoCo 26
+  - right_wrist_yaw_joint      # 28 → MuJoCo 28
 
 # --- Network architecture: SiLU-MLP ---
 network_layers: [994, 2048, 2048, 1024, 1024, 512, 512, 29]
