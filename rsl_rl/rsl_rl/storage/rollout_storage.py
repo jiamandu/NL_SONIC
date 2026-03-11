@@ -209,13 +209,15 @@ class RolloutStorage:
                 obs_batch = padded_obs_trajectories[:, first_traj:last_traj]
                 critic_obs_batch = padded_critic_obs_trajectories[:, first_traj:last_traj]
 
-                actions_batch = self.actions[:, start:stop]
-                old_mu_batch = self.mu[:, start:stop]
-                old_sigma_batch = self.sigma[:, start:stop]
-                returns_batch = self.returns[:, start:stop]
-                advantages_batch = self.advantages[:, start:stop]
-                values_batch = self.values[:, start:stop]
-                old_actions_log_prob_batch = self.actions_log_prob[:, start:stop]
+                # Flatten [T, N, ...] -> [T*N, ...] so shapes align with the flat
+                # [M, H] output produced by unpad_trajectories (M = T*N).
+                actions_batch = self.actions[:, start:stop].flatten(0, 1)
+                old_mu_batch = self.mu[:, start:stop].flatten(0, 1)
+                old_sigma_batch = self.sigma[:, start:stop].flatten(0, 1)
+                returns_batch = self.returns[:, start:stop].flatten(0, 1)
+                advantages_batch = self.advantages[:, start:stop].flatten(0, 1)
+                values_batch = self.values[:, start:stop].flatten(0, 1)
+                old_actions_log_prob_batch = self.actions_log_prob[:, start:stop].flatten(0, 1)
 
                 # reshape to [num_envs, time, num layers, hidden dim] (original shape: [time, num_layers, num_envs, hidden_dim])
                 # then take only time steps after dones (flattens num envs and time dimensions),

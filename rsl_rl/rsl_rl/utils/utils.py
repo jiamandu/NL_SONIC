@@ -65,7 +65,14 @@ def split_and_pad_trajectories(tensor, dones):
     return padded_trajectories, trajectory_masks
 
 def unpad_trajectories(trajectories, masks):
-    """ Does the inverse operation of  split_and_pad_trajectories()
+    """ Does the inverse operation of split_and_pad_trajectories().
+
+    Returns a flat tensor [M, H] of valid (non-padded) timesteps,
+    where M = num_steps * mini_batch_size = total valid transitions.
+
+    The old view(-1, T_max, H) crashed whenever M % T_max != 0, which
+    happens as soon as any episode terminates within a rollout window.
     """
-    # Need to transpose before and after the masking to have proper reshaping
-    return trajectories.transpose(1, 0)[masks.transpose(1, 0)].view(-1, trajectories.shape[0], trajectories.shape[-1]).transpose(1, 0)
+    # trajectories: [T_max, N_traj, H]
+    # masks:        [T_max, N_traj]  bool (True = valid timestep)
+    return trajectories.transpose(1, 0)[masks.transpose(1, 0)]  # [M, H]
