@@ -1,0 +1,10 @@
+isaacgym
+rsl-rl
+matplotlib
+numpy==1.20
+tensorboard
+mujoco==3.2.3
+pyyaml
+onnxruntime
+onnxruntime
+onnx

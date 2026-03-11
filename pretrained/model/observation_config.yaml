@@ -1,0 +1,62 @@
+# G1 Deploy - Observation Configuration
+# ====================================
+# Decoder input  (obs_dict): [1, 994]  float32
+# Decoder output (action)  : [1,  29]  float32
+
+# --- Dimensions ---
+obs_dim: 994
+num_actions: 29
+encoder_latent_dim: 64
+history_len: 10
+# Per-frame dim = 3+29+29+29+3 = 93,  10×93 = 930 + 64 = 994
+
+# --- Observation layout (start:end indices) ---
+obs_layout:
+  token_state:               [0,   64]   # 64  = encoder latent (64-dim)
+  his_base_angular_velocity: [64,  94]   # 30  = 10 frames × 3  (ωx,ωy,ωz)
+  his_body_joint_positions:  [94,  384]  # 290 = 10 frames × 29 joints
+  his_body_joint_velocities: [384, 674]  # 290 = 10 frames × 29 joints
+  his_last_actions:          [674, 964]  # 290 = 10 frames × 29 joints
+  his_gravity_dir:           [964, 994]  # 30  = 10 frames × 3  (gx,gy,gz)
+
+# --- Joint order (29 DOF) ---
+# index: joint_name
+joint_names:
+  # 左腿 (0-5)
+  - left_hip_pitch_joint      # 0
+  - left_hip_roll_joint       # 1
+  - left_hip_yaw_joint        # 2
+  - left_knee_joint           # 3
+  - left_ankle_pitch_joint    # 4
+  - left_ankle_roll_joint     # 5
+  # 右腿 (6-11)
+  - right_hip_pitch_joint     # 6
+  - right_hip_roll_joint      # 7
+  - right_hip_yaw_joint       # 8
+  - right_knee_joint          # 9
+  - right_ankle_pitch_joint   # 10
+  - right_ankle_roll_joint    # 11
+  # 腰部 (12-14)
+  - waist_yaw_joint           # 12
+  - waist_roll_joint          # 13
+  - waist_pitch_joint         # 14
+  # 左臂 (15-21)
+  - left_shoulder_pitch_joint # 15
+  - left_shoulder_roll_joint  # 16
+  - left_shoulder_yaw_joint   # 17
+  - left_elbow_joint          # 18
+  - left_wrist_roll_joint     # 19
+  - left_wrist_pitch_joint    # 20
+  - left_wrist_yaw_joint      # 21
+  # 右臂 (22-28)
+  - right_shoulder_pitch_joint # 22
+  - right_shoulder_roll_joint  # 23
+  - right_shoulder_yaw_joint   # 24
+  - right_elbow_joint          # 25
+  - right_wrist_roll_joint     # 26
+  - right_wrist_pitch_joint    # 27
+  - right_wrist_yaw_joint      # 28
+
+# --- Network architecture: SiLU-MLP ---
+network_layers: [994, 2048, 2048, 1024, 1024, 512, 512, 29]
+activation: SiLU
