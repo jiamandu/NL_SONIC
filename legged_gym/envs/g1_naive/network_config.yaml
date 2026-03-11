@@ -1,0 +1,165 @@
+# G1 Naive Policy - Network Configuration
+# =========================================
+# Overall pipeline:
+#
+#   Env obs (1026) ──► Actor MLP (96→64) ──► token (64) ──┐
+#                                                           ├──► Decoder (994→29) ──► actions (29)
+#   Env obs (1026) [his_*, 930 dims]  ────────────────────┘
+#
+#   Env privileged obs (1029) ──► Critic MLP (1029→1) ──► value (1)
+#
+# Training:  Actor MLP trainable,  Decoder frozen (pretrained).
+# Decoder weights: pretrained/model/model_decoder_native.pth
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Dimensions
+# ─────────────────────────────────────────────────────────────────────────────
+num_actions:        29   # joint position targets (29 DOF)
+mlp_input_dim:      96   # Actor MLP input
+token_dim:          64   # Actor MLP output / decoder token slot
+history_dim:        930  # 10 frames × 93 dims per frame
+decoder_input_dim:  994  # token(64) + history(930)
+num_actor_obs:      1026 # full actor observation = mlp_input(96) + history(930)
+num_critic_obs:     1029 # privileged obs = actor_obs(1026) + lin_vel(3)
+history_len:        10
+dof:                29
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Actor Observation Layout  [1026 dims total]
+# ─────────────────────────────────────────────────────────────────────────────
+# Produced by G1NaiveRobot.compute_observations() each control step.
+# Scaling is applied before storage (values are already normalised).
+#
+actor_obs_layout:
+
+  # ── Current-frame MLP input (96 dims, fed directly to Actor MLP) ──────────
+  mlp_input:
+    range:    [0, 96]
+    dim:      96
+    fields:
+      ang_vel:    {range: [0,  3],  dim: 3,  scale: obs_scales.ang_vel,  note: "base angular velocity (rad/s)"}
+      dof_pos:    {range: [3,  32], dim: 29, scale: obs_scales.dof_pos,  note: "joint pos relative to default (rad)"}
+      dof_vel:    {range: [32, 61], dim: 29, scale: obs_scales.dof_vel,  note: "joint velocity (rad/s)"}
+      actions:    {range: [61, 90], dim: 29, scale: 1.0,                 note: "last action sent to PD controller"}
+      gravity:    {range: [90, 93], dim: 3,  scale: 1.0,                 note: "projected gravity vector (unit)"}
+      cmd:        {range: [93, 96], dim: 3,  scale: commands_scale,      note: "lin_vel_x, lin_vel_y, ang_vel_yaw"}
+
+  # ── 10-frame history (930 dims, fed to Decoder alongside token) ───────────
+  # Each block stores frames ordered oldest→newest (frame 0 = oldest, frame 9 = newest).
+  # History is updated every control step via torch.roll.
+  history:
+    range:    [96, 1026]
+    dim:      930
+    note:     "10 frames × 93 dims/frame, quantities stored separately"
+    blocks:
+      his_ang_vel:  {range: [96,  126],  dim: 30,  layout: "10 × 3  (ωx,ωy,ωz)",  scale: obs_scales.ang_vel}
+      his_dof_pos:  {range: [126, 416],  dim: 290, layout: "10 × 29 joint positions", scale: obs_scales.dof_pos}
+      his_dof_vel:  {range: [416, 706],  dim: 290, layout: "10 × 29 joint velocities", scale: obs_scales.dof_vel}
+      his_actions:  {range: [706, 996],  dim: 290, layout: "10 × 29 last actions",     scale: 1.0}
+      his_gravity:  {range: [996, 1026], dim: 30,  layout: "10 × 3  (gx,gy,gz)",       scale: 1.0}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Privileged (Critic) Observation Layout  [1029 dims total]
+# ─────────────────────────────────────────────────────────────────────────────
+# Appends ground-truth linear velocity (available only during training).
+#
+critic_obs_layout:
+  actor_obs:  {range: [0,    1026], dim: 1026, note: "same as actor obs above"}
+  lin_vel:    {range: [1026, 1029], dim: 3,    scale: obs_scales.lin_vel,
+               note: "base linear velocity in body frame (rad/s) — privileged"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Actor MLP  (trainable)
+# ─────────────────────────────────────────────────────────────────────────────
+actor_mlp:
+  input_dim:   96     # mlp_input portion of actor obs
+  output_dim:  64     # token fed into the decoder
+  hidden_dims: [512, 256]
+  activation:  elu
+  layers:      [96, 512, 256, 64]
+  note: "Maps current proprioception + cmd to a 64-dim latent token"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Decoder  (frozen pretrained SiLU-MLP)
+# ─────────────────────────────────────────────────────────────────────────────
+# weights: pretrained/model/model_decoder_native.pth
+#
+decoder:
+  input_dim:  994
+  output_dim: 29   # joint position targets (same order as DOF list below)
+  activation: SiLU
+  layers:     [994, 2048, 2048, 1024, 1024, 512, 512, 29]
+  frozen:     true
+  input_layout:
+    token_state:               {range: [0,   64],  dim: 64,  note: "latent from Actor MLP"}
+    his_base_angular_velocity: {range: [64,  94],  dim: 30,  note: "10 × 3  (from actor obs)"}
+    his_body_joint_positions:  {range: [94,  384], dim: 290, note: "10 × 29 (from actor obs)"}
+    his_body_joint_velocities: {range: [384, 674], dim: 290, note: "10 × 29 (from actor obs)"}
+    his_last_actions:          {range: [674, 964], dim: 290, note: "10 × 29 (from actor obs)"}
+    his_gravity_dir:           {range: [964, 994], dim: 30,  note: "10 × 3  (from actor obs)"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Critic MLP  (trainable)
+# ─────────────────────────────────────────────────────────────────────────────
+critic_mlp:
+  input_dim:   1029
+  output_dim:  1
+  hidden_dims: [512, 256, 128]
+  activation:  elu
+  layers:      [1029, 512, 256, 128, 1]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Joint order (29 DOF, IsaacLab / ONNX order)
+# ─────────────────────────────────────────────────────────────────────────────
+joint_names:
+  - left_hip_pitch_joint        # 0
+  - left_knee_joint             # 1
+  - right_hip_pitch_joint       # 2
+  - right_knee_joint            # 3
+  - waist_roll_joint            # 4
+  - left_shoulder_yaw_joint     # 5
+  - left_hip_roll_joint         # 6
+  - left_ankle_pitch_joint      # 7
+  - right_hip_roll_joint        # 8
+  - right_ankle_pitch_joint     # 9
+  - waist_pitch_joint           # 10
+  - left_elbow_joint            # 11
+  - left_hip_yaw_joint          # 12
+  - left_ankle_roll_joint       # 13
+  - right_hip_yaw_joint         # 14
+  - right_ankle_roll_joint      # 15
+  - left_shoulder_pitch_joint   # 16
+  - left_wrist_roll_joint       # 17
+  - left_wrist_yaw_joint        # 18
+  - right_shoulder_roll_joint   # 19
+  - right_elbow_joint           # 20
+  - right_wrist_pitch_joint     # 21
+  - waist_yaw_joint             # 22
+  - left_shoulder_roll_joint    # 23
+  - left_wrist_pitch_joint      # 24
+  - right_shoulder_pitch_joint  # 25
+  - right_shoulder_yaw_joint    # 26
+  - right_wrist_roll_joint      # 27
+  - right_wrist_yaw_joint       # 28
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Observation scales (default values from LeggedRobotCfg)
+# ─────────────────────────────────────────────────────────────────────────────
+obs_scales:
+  lin_vel:  1.0
+  ang_vel:  0.25
+  dof_pos:  1.0
+  dof_vel:  0.05
+
+commands_scale:  # [lin_vel_x, lin_vel_y, ang_vel_yaw]
+  - 1.0   # lin_vel_x  × obs_scales.lin_vel
+  - 1.0   # lin_vel_y  × obs_scales.lin_vel
+  - 0.25  # ang_vel_yaw × obs_scales.ang_vel
