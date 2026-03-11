@@ -108,6 +108,7 @@ class G1RoughCfg(LeggedRobotCfg):
     class rewards(LeggedRobotCfg.rewards):
         soft_dof_pos_limit = 0.9
         base_height_target = 0.78
+        only_positive_rewards = False
 
         class scales(LeggedRobotCfg.rewards.scales):
             tracking_lin_vel = 1.0
@@ -131,16 +132,16 @@ class G1RoughCfg(LeggedRobotCfg):
 
 class G1RoughCfgPPO(LeggedRobotCfgPPO):
     class policy:
-        init_noise_std = 0.8
-        actor_hidden_dims = [32]
-        critic_hidden_dims = [32]
+        init_noise_std = 0.3
+        actor_hidden_dims = [512, 256]
+        critic_hidden_dims = [512, 256, 128]
         activation = 'elu'
         rnn_type = 'lstm'
-        rnn_hidden_size = 64
+        rnn_hidden_size = 256
         rnn_num_layers = 1
 
     class algorithm(LeggedRobotCfgPPO.algorithm):
-        entropy_coef = 0.01
+        entropy_coef = 0.005
 
     class runner(LeggedRobotCfgPPO.runner):
         policy_class_name = "ActorCriticRecurrent"

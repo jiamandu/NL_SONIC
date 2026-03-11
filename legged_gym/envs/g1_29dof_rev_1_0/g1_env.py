@@ -9,13 +9,13 @@ class G1WithHandRobot(LeggedRobot):
 
     def _get_noise_scale_vec(self, cfg):
         """Sets a vector used to scale the noise added to the observations.
-        obs layout: [ang_vel(3), gravity(3), commands(3), dof_pos(43), dof_vel(43), actions(43), sin_phase(1), cos_phase(1)]
+        obs layout: [ang_vel(3), gravity(3), commands(3), dof_pos(29), dof_vel(29), actions(29), sin_phase(1), cos_phase(1)]
         """
         noise_vec = torch.zeros_like(self.obs_buf[0])
         self.add_noise = self.cfg.noise.add_noise
         noise_scales = self.cfg.noise.noise_scales
         noise_level = self.cfg.noise.noise_level
-        num_dof = self.num_dof  # 43 for g1_29dof_with_hand
+        num_dof = self.num_dof  # 29 for g1_29dof_rev_1_0
 
         noise_vec[:3] = noise_scales.ang_vel * noise_level * self.obs_scales.ang_vel
         noise_vec[3:6] = noise_scales.gravity * noise_level

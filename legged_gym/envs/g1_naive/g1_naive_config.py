@@ -104,6 +104,7 @@ class G1NaiveCfg(LeggedRobotCfg):
     class rewards(LeggedRobotCfg.rewards):
         soft_dof_pos_limit = 0.9
         base_height_target = 0.78
+        only_positive_rewards = False
 
         class scales(LeggedRobotCfg.rewards.scales):
             tracking_lin_vel = 1.0
@@ -127,7 +128,7 @@ class G1NaiveCfg(LeggedRobotCfg):
 
 class G1NaiveCfgPPO(LeggedRobotCfgPPO):
     class policy:
-        init_noise_std = 0.8
+        init_noise_std = 0.3
         # Actor MLP hidden dims: 96 -> 512 -> 256 -> 64
         actor_hidden_dims = [512, 256]
         # Critic MLP hidden dims: 1029 -> 512 -> 256 -> 128 -> 1
@@ -137,7 +138,7 @@ class G1NaiveCfgPPO(LeggedRobotCfgPPO):
         decoder_path = _DECODER_PATH
 
     class algorithm(LeggedRobotCfgPPO.algorithm):
-        entropy_coef = 0.01
+        entropy_coef = 0.005
 
     class runner(LeggedRobotCfgPPO.runner):
         policy_class_name = "ActorCriticNaive"
